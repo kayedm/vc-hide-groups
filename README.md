@@ -1,1 +1,1 @@
-Removes Group Chats from your DM list on discord.
+A Vencord plugin that allows you to remove groups from your direct messeges list on Discord.
