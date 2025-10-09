@@ -29,6 +29,12 @@ function applyCss() {
     style.textContent = settings.store.hiddenDMs;
 }
 
+/** Removes styling **/
+function removeCss() {
+    style?.remove();
+    style = null;
+}
+
 /** Update the <style> tag's text */
 function updateCss() {
     if (style) style.textContent = settings.store.hiddenDMs;
@@ -40,6 +46,7 @@ function hideDM(dmId: string) {
     const rule = `li:has(a[href="/channels/@me/${dmId}"]) { display: none !important; }\n`;
     if (!settings.store.hiddenDMs.includes(rule)) {
         settings.store.hiddenDMs += rule;
+        //updates css with the added channel id
         updateCss();
         console.log(`[HideGroupChats] Hidden group DM: ${dmId}`);
     }
@@ -53,6 +60,7 @@ function unhideDM(dmId: string) {
         "g"
     );
     settings.store.hiddenDMs = settings.store.hiddenDMs.replace(regex, "");
+    // Updates the css to unhide the selected DM's
     updateCss();
     console.log(`[HideGroupChats] Unhidden group DM: ${dmId}`);
 }
@@ -83,7 +91,7 @@ function interceptCloseIcons() {
 /** Detect when a group DM is actually opened */
 function detectOpenedGroupDM() {
     const path = window.location.pathname;
-    if (path === lastPath) return; // no navigation change
+    if (path === lastPath) return;
     lastPath = path;
 
     const match = path.match(/\/channels\/@me\/(\d+)/);
@@ -125,6 +133,7 @@ function cleanupObservers() {
     }
 }
 
+
 export default definePlugin({
     name: "HideGroupChats",
     description: "Hide group DMs via the X icon.",
@@ -137,7 +146,6 @@ export default definePlugin({
     },
     stop() {
         cleanupObservers();
-        style?.remove();
-        style = null;
+        removeCss();
     },
 });
