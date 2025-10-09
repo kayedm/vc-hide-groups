@@ -57,7 +57,7 @@ function unhideDM(dmId: string) {
     console.log(`[HideGroupChats] Unhidden group DM: ${dmId}`);
 }
 
-/** Intercept the close (X) icon to hide group DMs instead of leaving them */
+/** Intercept the close X icon to hide group DMs instead of leaving them */
 function interceptCloseIcons() {
     document.querySelectorAll("svg.closeIcon__972a0").forEach(icon => {
         const el = icon as HTMLElement;
@@ -80,7 +80,7 @@ function interceptCloseIcons() {
     });
 }
 
-/** Detect when a group DM is actually opened (via URL change) */
+/** Detect when a group DM is actually opened */
 function detectOpenedGroupDM() {
     const path = window.location.pathname;
     if (path === lastPath) return; // no navigation change
@@ -127,19 +127,17 @@ function cleanupObservers() {
 
 export default definePlugin({
     name: "HideGroupChats",
-    description: "Hide group DMs via the X icon and unhide them when opened (no hover triggers).",
+    description: "Hide group DMs via the X icon.",
     authors: [{ name: "You", id: 444319970122530818n }],
     settings,
     start() {
         applyCss();
         interceptCloseIcons();
         observeSidebar();
-        console.log("[HideGroupChats] Plugin started.");
     },
     stop() {
         cleanupObservers();
         style?.remove();
         style = null;
-        console.log("[HideGroupChats] Plugin stopped.");
     },
 });
