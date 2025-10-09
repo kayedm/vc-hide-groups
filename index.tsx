@@ -7,60 +7,69 @@
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 
-
-let hiddenCss = "";
-let style: HTMLStyleElement;
-
 const settings = definePluginSettings({
-    groupList: {
-        type: OptionType.COMPONENT,
-        description: "Enable hiding group DMs",
-        component: () => {
-
-            const groupDMs = document.querySelectorAll('a[aria-label*="(group message)"]');
-            const groupDMFiltered = Array.from(groupDMs).map(dm => {
-                const id = dm.getAttribute("href")?.split("/").pop() ?? "";
-                const label = dm.getAttribute("aria-label") ?? "";
-                const name = label.replace(" (group message)", "");
-                return { id, name };
-            });
-            applyCss();
-
-            return (
-                <div>
-                    {groupDMFiltered.map((dm, i) => (
-                        <label key={i} style={{ color: "#FFFFFF" }}>
-                            <input
-                                type="checkbox"
-                                onChange={e => handleDMList(dm.id, e.currentTarget.checked)}
-                            />
-                            {dm.name}
-                            <br/>
-                        </label>
-                    ))}
-                </div>
-            );
-        }
+    hiddenDMs: {
+        type: OptionType.STRING,
+        default: "",
+        description: "Stored CSS rules hiding group DMs",
     },
 });
 
-function applyCss () {
+let style: HTMLStyleElement | null = null;
+let observer: MutationObserver | null = null;
+
+function applyCss() {
+    if (style) return;
     style = document.createElement("style");
     style.id = "hide-group-dm-style";
     document.head.appendChild(style);
-    style.textContent = hiddenCss;
+    style.textContent = settings.store.hiddenDMs;
 }
 
-function handleDMList(dm, checked) {
-    if (checked) {
-        hiddenCss += `li:has(a[href="/channels/@me/${dm}"]) { display: none !important; }\n`;
-        console.log(hiddenCss);
-    }
+function interceptCloseIcons() {
+    document.querySelectorAll("svg.closeIcon__972a0").forEach(icon => {
+        const el = icon as HTMLElement;
+        if (el.dataset.hideGroupBound) return;
+        el.dataset.hideGroupBound = "true";
+
+        el.addEventListener("click", e => {
+            e.preventDefault();
+            e.stopPropagation();
+            const dmLink = el.closest("li")?.querySelector<HTMLAnchorElement>('a[href*="/channels/@me/"]');
+            const dmId = dmLink?.getAttribute("href")?.split("/").pop();
+            const label = dmLink?.getAttribute("aria-label") ?? "";
+
+            if (!dmId || !label.includes("(group message)")) return;
+
+            settings.store.hiddenDMs += `li:has(a[href="/channels/@me/${dmId}"]) { display: none !important; }\n`;
+
+            if (style) {
+                style.textContent = settings.store.hiddenDMs;
+            }
+        });
+    });
+}
+
+function observeSidebar() {
+    if (observer) return;
+    observer = new MutationObserver(interceptCloseIcons);
+    observer.observe(document.body, { childList: true, subtree: true });
 }
 
 export default definePlugin({
-    name: "HideGroupDM",
-    description: "Hides group DMs from your Direct Messages",
+    name: "HideGroupChats",
+    description: "Remaps the X icon on group DMs to hide them instead of leaving.",
     authors: [{ name: "You", id: 444319970122530818n }],
     settings,
+    start() {
+        applyCss();
+        interceptCloseIcons();
+        observeSidebar();
+    },
+    stop() {
+        observer?.disconnect();
+        observer = null;
+        style?.remove();
+        style = null;
+    }
 });
