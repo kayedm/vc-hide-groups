@@ -33,13 +33,14 @@ function interceptCloseIcons() {
         el.dataset.hideGroupBound = "true";
 
         el.addEventListener("click", e => {
-            e.preventDefault();
-            e.stopPropagation();
             const dmLink = el.closest("li")?.querySelector<HTMLAnchorElement>('a[href*="/channels/@me/"]');
             const dmId = dmLink?.getAttribute("href")?.split("/").pop();
             const label = dmLink?.getAttribute("aria-label") ?? "";
 
-            if (!dmId || !label.includes("(group message)")) return;
+            // only target group dms
+            if (!label.includes("(group message)")) return;
+            e.stopPropagation();
+            e.preventDefault();
 
             settings.store.hiddenDMs += `li:has(a[href="/channels/@me/${dmId}"]) { display: none !important; }\n`;
 
