@@ -49,7 +49,7 @@ function hideDM(dmId: string) {
 function unhideDM(dmId: string) {
     if (!dmId) return;
     const regex = new RegExp(
-        `li:has\\(a\\[href="/channels/@me/${dmId}"\\]\\) \\{ display: none !important; }\\n?`,
+        `li:has\\(a\\[href="/channels/@me/${dmId}"]\\) \\{ display: none !important; }\\n?`,
         "g"
     );
     settings.store.hiddenDMs = settings.store.hiddenDMs.replace(regex, "");
