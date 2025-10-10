@@ -133,7 +133,6 @@ function cleanupObservers() {
     }
 }
 
-
 export default definePlugin({
     name: "HideGroupChats",
     description: "Hide group DMs via the X icon.",
