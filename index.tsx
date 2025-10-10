@@ -16,9 +16,8 @@ const settings = definePluginSettings({
 });
 
 let style: HTMLStyleElement | null = null;
-let observer: MutationObserver | null = null;
-let lastPath = window.location.pathname;
-let urlWatcher: number | null = null;
+let sidebarObserver: MutationObserver | null = null;
+let urlObserver: MutationObserver | null = null;
 
 /** Create and attach a <style> tag for hiding DMs */
 function applyCss() {
@@ -46,7 +45,6 @@ function hideDM(dmId: string) {
     const rule = `li:has(a[href="/channels/@me/${dmId}"]) { display: none !important; }\n`;
     if (!settings.store.hiddenDMs.includes(rule)) {
         settings.store.hiddenDMs += rule;
-        //updates css with the added channel id
         updateCss();
         console.log(`[HideGroupChats] Hidden group DM: ${dmId}`);
     }
@@ -60,7 +58,6 @@ function unhideDM(dmId: string) {
         "g"
     );
     settings.store.hiddenDMs = settings.store.hiddenDMs.replace(regex, "");
-    // Updates the css to unhide the selected DM's
     updateCss();
     console.log(`[HideGroupChats] Unhidden group DM: ${dmId}`);
 }
@@ -91,9 +88,6 @@ function interceptCloseIcons() {
 /** Detect when a group DM is actually opened */
 function detectOpenedGroupDM() {
     const path = window.location.pathname;
-    if (path === lastPath) return;
-    lastPath = path;
-
     const match = path.match(/\/channels\/@me\/(\d+)/);
     const dmId = match?.[1];
     if (!dmId) return;
@@ -102,35 +96,47 @@ function detectOpenedGroupDM() {
     const dmLink = document.querySelector(`a[href="/channels/@me/${dmId}"]`);
     const label = dmLink?.getAttribute("aria-label") ?? "";
 
-    // Only unhide if it's a group DM
     if (label.includes("(group message)")) {
         unhideDM(dmId);
     }
 }
 
+/** Watches for changes in the windows pathname URL*/
+function startUrlWatcher() {
+    // Check immediately in case Discord opens in a group DM
+    detectOpenedGroupDM();
+
+    let lastPath = window.location.pathname;
+
+    const checkPath = () => {
+        const newPath = window.location.pathname;
+        if (newPath !== lastPath) {
+            lastPath = newPath;
+            detectOpenedGroupDM();
+        }
+    };
+
+    urlObserver = new MutationObserver(checkPath);
+    urlObserver.observe(document.body, { childList: true, subtree: true });
+}
+
 /** Observe DOM for new icons and watch for URL changes */
 function observeSidebar() {
-    if (observer) return;
+    if (sidebarObserver) return;
 
-    observer = new MutationObserver(() => {
-        // Only handle new icons here
-        interceptCloseIcons();
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
+    sidebarObserver = new MutationObserver(interceptCloseIcons);
+    sidebarObserver.observe(document.body, { childList: true, subtree: true });
 
-    // Watch for navigation changes (every 500ms)
-    urlWatcher = window.setInterval(detectOpenedGroupDM, 500);
+    startUrlWatcher();
 }
 
 /** Clean up observers and event listeners */
 function cleanupObservers() {
-    observer?.disconnect();
-    observer = null;
+    sidebarObserver?.disconnect();
+    sidebarObserver = null;
 
-    if (urlWatcher) {
-        clearInterval(urlWatcher);
-        urlWatcher = null;
-    }
+    urlObserver?.disconnect();
+    urlObserver = null;
 }
 
 export default definePlugin({
