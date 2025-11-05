@@ -53,11 +53,8 @@ function hideDM(dmId: string) {
 /** Remove a DM from the hidden list */
 function unhideDM(dmId: string) {
     if (!dmId) return;
-    const regex = new RegExp(
-        `li:has\\(a\\[href="/channels/@me/${dmId}"]\\) \\{ display: none !important; }\\n?`,
-        "g"
-    );
-    settings.store.hiddenDMs = settings.store.hiddenDMs.replace(regex, "");
+    const rule = `li:has(a[href="/channels/@me/${dmId}"]) { display: none !important; }\n`;
+    settings.store.hiddenDMs = settings.store.hiddenDMs.replace(rule, "");
     updateCss();
     console.log(`[HideGroupChats] Unhidden group DM: ${dmId}`);
 }
@@ -85,7 +82,7 @@ function interceptCloseIcons() {
     });
 }
 
-/** Detect when a group DM is actually opened */
+/** Detects when a group DM is opened */
 function detectOpenedGroupDM() {
     const path = window.location.pathname;
     const match = path.match(/\/channels\/@me\/(\d+)/);
